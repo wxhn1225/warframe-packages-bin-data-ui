@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vite/
+*.local
+
+# Generated at build time by tools/gen-trie (Rust)
+public/tree-meta.json
+public/chunks/
+
+# Legacy (no longer generated)
+public/tree.json
+public/paths.txt

@@ -1,0 +1,3 @@
+[submodule "warframe-packages-bin-data"]
+	path = warframe-packages-bin-data
+	url = https://github.com/Sainan/warframe-packages-bin-data.git

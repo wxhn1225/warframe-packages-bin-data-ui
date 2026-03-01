@@ -1,0 +1,54 @@
+name: Sync Submodule
+
+on:
+  schedule:
+    # Check for upstream updates every 6 hours
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-submodule
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update submodule to latest upstream
+        run: git submodule update --remote warframe-packages-bin-data
+
+      - name: Check if submodule changed
+        id: check
+        run: |
+          if git diff --quiet HEAD warframe-packages-bin-data; then
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected."
+          else
+            cd warframe-packages-bin-data
+            COMMIT_MSG=$(git log -1 --format="%s")
+            COMMIT_SHA=$(git rev-parse --short HEAD)
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+            # Use printf to safely handle special characters
+            printf 'commit_msg=%s\n' "$COMMIT_MSG" >> "$GITHUB_OUTPUT"
+            echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+            echo "Submodule updated to $COMMIT_SHA: $COMMIT_MSG"
+          fi
+
+      - name: Commit and push submodule update
+        if: steps.check.outputs.updated == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add warframe-packages-bin-data
+          git commit -m "${{ steps.check.outputs.commit_msg }}"
+          git push
